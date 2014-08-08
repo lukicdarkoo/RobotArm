@@ -52,9 +52,11 @@ void RobotArm::attach() {
 }
 
 void RobotArm::setDefaults() {
+	smoothMovementsFinished = false;
 	smoothMovements = true;
 	keepCrankParalel = true;
 	smoothly = 100;
+	lastRefresh = 0;
 	
 	// Set default PINS (first, second, third, rotate & grabber)
 	// Set default ANGLE FIXES
@@ -123,22 +125,22 @@ void RobotArm::setFixedAngle(uint8_t crank, uint8_t angle) {
 // Set arm on coordinates
 // Hard part for someone who hates Mathematics
 // Check picture for more information
-void RobotArm::setCoordinates(float x, float y, float z) {
+void RobotArm::setCoordinates(short x, short y, short z) {
 	// Calculate angle for Rotation servo
 	uint8_t beta = atan2(z, x) * 180 / PI;
 	setAngle(ROBOTARM_ROTATION_CRANK, beta);
 	
 	// Calculate angle for First and Second servo
-	float l = servoDistances[ROBOTARM_DISTANCE_FIRST_SECOND];
-	float d = servoDistances[ROBOTARM_DISTANCE_SECOND_THIRD];
+	short l = servoDistances[ROBOTARM_DISTANCE_FIRST_SECOND];
+	short d = servoDistances[ROBOTARM_DISTANCE_SECOND_THIRD];
 
 	// (m, n) are coordinates of Second crank
 	// p is x axis in extra coordinate system
 	// m^2+n^2=l^2 & (m - p)^2+(n-y)^2=d^2
 	float p = sqrt(x*x + z*z);
-    float m = (1/(2*(p*p + y*y)))*((-d)*d*p - sqrt((-y)*y*(d*d*d*d - 2*d*d*l*l - 2*d*d*p*p - 2*d*d*y*y + l*l*l*l - 2*l*l*p*p - 2*l*l*y*y + p*p*p*p + 2*p*p*y*y + y*y*y*y)) + l*l*p + p*p*p + p*y*y);
+    float m = (1.0/(2*(p*p + y*y)))*((-d)*d*p - sqrt((-y)*y*(d*d*d*d - 2*d*d*l*l - 2*d*d*p*p - 2*d*d*y*y + l*l*l*l - 2*l*l*p*p - 2*l*l*y*y + p*p*p*p + 2*p*p*y*y + y*y*y*y)) + l*l*p + p*p*p + p*y*y);
 	
-    float n = (1/(2*y*(p*p + y*y)))*(-d*d*y*y + p*sqrt(-y*y*(d*d*d*d - 2*d*d*l*l - 2*d*d*p*p - 2*d*d*y*y + l*l*l*l - 2*l*l*p*p - 2*l*l*y*y + p*p*p*p + 2*p*p*y*y + y*y*y*y)) + l*l*y*y + p*p*y*y + y*y*y*y);
+    float n = (1.0/(2*y*(p*p + y*y)))*(-d*d*y*y + p*sqrt(-y*y*(d*d*d*d - 2*d*d*l*l - 2*d*d*p*p - 2*d*d*y*y + l*l*l*l - 2*l*l*p*p - 2*l*l*y*y + p*p*p*p + 2*p*p*y*y + y*y*y*y)) + 1.0*l*l*y*y + p*p*y*y + y*y*y*y);
 
 
 	// s = sqrt(x*x + y*y + z*z), it's along from (0, 0, 0) to (x, y, z)
@@ -150,7 +152,7 @@ void RobotArm::setCoordinates(float x, float y, float z) {
 }
 
 // Check if arm can reach coordinates
-bool RobotArm::isCoordinateReachable (float x, float y, float z) {
+bool RobotArm::isCoordinateReachable (short x, short y, short z) {
 	if (sqrt(x*x + y*y + z*z) > servoDistances[ROBOTARM_DISTANCE_FIRST_SECOND] + servoDistances[ROBOTARM_DISTANCE_SECOND_THIRD])
 		return false;
 		
@@ -172,6 +174,9 @@ void RobotArm::printAngles() {
 	Serial.print("Gama: ");
 	Serial.println(readFinalAngle(ROBOTARM_SECOND_CRANK));
 	
+	Serial.print("Delta: ");
+	Serial.println(readFinalAngle(ROBOTARM_THIRD_CRANK));
+	
 	Serial.println("");
 }
 
@@ -179,12 +184,13 @@ void RobotArm::printAngles() {
 void RobotArm::update() {
 
 	// Smooth movements are a little bit complicated
-	if (smoothMovements) {
-		static unsigned long lastRefresh = 0;
-		
+	if (smoothMovements && !smoothMovementsFinished) {
+
 		if (millis() > lastRefresh + 10) {
 			lastRefresh = millis();
 
+			smoothMovementsFinished = true;
+			
 			for (uint8_t crank = 0; crank < 5; crank++) {
 				if (readAngle(crank) != finalAngles[crank]) {
 				
@@ -192,6 +198,8 @@ void RobotArm::update() {
 						setFixedAngle(crank, finalAngles[crank]);
 						break;
 					}
+				
+					smoothMovementsFinished = false;
 				
 					int8_t direction = (finalAngles[crank] > readAngle(crank)) ? 1 : -1;
 					

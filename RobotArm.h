@@ -20,7 +20,7 @@
 #ifndef RobotArm_h
 #define RobotArm_h
 
-	#include <../Servo/Servo.h>
+	#include <Servo.h>
 	#include <Arduino.h>
 	#include <inttypes.h>
 	#include <math.h>
@@ -50,11 +50,11 @@
 			
 			void attach(); 	// Call this in setup()
 			void update();	// Call this function at least once every 50ms
-			void setCoordinates(float, float, float);	// Set arm to specific coordinates
+			void setCoordinates(short, short, short);	// Set arm to specific coordinates
 			void setAngle(uint8_t, uint8_t);			// Set angle of arm
 			uint8_t readAngle(uint8_t);					// Read angle of crank
 			uint8_t readFinalAngle(uint8_t);			// Read final angle of crank
-			bool isCoordinateReachable(float, float, float);	// Check if coordinates are reachable
+			bool isCoordinateReachable(short, short, short);	// Check if coordinates are reachable
 			
 			
 			// For easy debugging
@@ -64,7 +64,7 @@
 			int8_t servoAngleFixes[5]; 		// Change start angle with this
 			bool servoDirectionFixes[5];	// Fix direction of each servo
 			uint8_t servosPins[5];			// Pins for each servo
-			float servoDistances[3];		// Distance between each servo. Unit doesn't matter, try with mm
+			short servoDistances[3];		// Distance between each servo. Unit doesn't matter, try with mm
 			bool smoothMovements;			// Enable smooth movements, speed up & speed down
 			bool keepCrankParalel;			// Every you change angle set angle of third crank to keep grabber parallel to surface
 			
@@ -79,5 +79,7 @@
 			float lastServoSpeed[5];
 			uint8_t finalAngles[5];
 			uint8_t startAngles[5];
+			bool smoothMovementsFinished;
+			unsigned long lastRefresh;
 	};
 #endif
