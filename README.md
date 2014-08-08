@@ -2,9 +2,10 @@ RobotArm
 ========
 
 Arduino library for Robot Arm control. It provides features like:
-- easy way to set engle of every crank,
-- set arm at specific coordinates,
-- smooth movements...
+- Set angle of each crank easy,
+- Set arm at specific coordinates,
+- Smooth movements,
+- Auto keep grabber parallel to surface...
 
 
 REQUIREMENTS
