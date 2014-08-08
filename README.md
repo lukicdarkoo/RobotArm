@@ -16,7 +16,7 @@ Arduino 1.0 or higher
 INSTALATION
 -----------
 
-Just copy all files in '[Arduino path]/libraries'
+Just copy all files in **[Arduino path]/libraries**
 
 
 EXAMPLE
