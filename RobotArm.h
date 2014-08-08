@@ -53,21 +53,24 @@
 			void setCoordinates(float, float, float);	// Set arm to specific coordinates
 			void setAngle(uint8_t, uint8_t);			// Set angle of arm
 			uint8_t readAngle(uint8_t);					// Read angle of crank
+			uint8_t readFinalAngle(uint8_t);			// Read final angle of crank
 			bool isCoordinateReachable(float, float, float);	// Check if coordinates are reachable
-			float smoothly;
+			
 			
 			// For easy debugging
-			bool debug;
-			void printAngles(uint8_t, uint8_t, uint8_t);
+			void printAngles();
 			
 			// Define these parameters before setCoordinates() or setAngle()
 			int8_t servoAngleFixes[5]; 		// Change start angle with this
 			bool servoDirectionFixes[5];	// Fix direction of each servo
 			uint8_t servosPins[5];			// Pins for each servo
 			float servoDistances[3];		// Distance between each servo. Unit doesn't matter, try with mm
-			bool smoothMovements;
+			bool smoothMovements;			// Enable smooth movements, speed up & speed down
+			bool keepCrankParalel;			// Every you change angle set angle of third crank to keep grabber parallel to surface
 			
-			uint8_t smoothAnglePart;
+			uint8_t smoothly;	// How smooth do you want (default 100, min 1, max 255)
+			
+
 		private:
 			void setFixedAngle(uint8_t, uint8_t);
 			void setDefaults();

@@ -20,14 +20,14 @@
 /*
 EXPLANATION
 
-				   * (Third crank)
-			      / \
-				 /   * (Grabber)
+                   * (Third crank)
+                  / \
+                 /   * (Grabber)
 (Second crank)  *    /\
-			    |
-			    |
-			    ** (Rotation & First crank)
-		   ------------
+                |
+                |
+                ** (Rotation & First crank)
+           ------------
 	
 	
 Servo name - Angle name
@@ -46,16 +46,15 @@ RobotArm::RobotArm() {
 
 void RobotArm::attach() {
 	for (uint8_t i = 0; i < 5; i++) {
-		//if (i != 1)
 		servos[i].attach(servosPins[i]);
 		setAngle(i, 90);
 	}
 }
 
 void RobotArm::setDefaults() {
-	debug = true;
 	smoothMovements = true;
-	smoothly = 0.1;
+	keepCrankParalel = true;
+	smoothly = 100;
 	
 	// Set default PINS (first, second, third, rotate & grabber)
 	// Set default ANGLE FIXES
@@ -77,18 +76,37 @@ void RobotArm::setAngle(uint8_t crank, uint8_t angle) {
 		startAngles[crank] = readAngle(crank);
 		finalAngles[crank] = angle;
 		lastServoSpeed[crank] = smoothly;
+		
+		if (keepCrankParalel) {
+			startAngles[ROBOTARM_THIRD_CRANK] = readAngle(ROBOTARM_THIRD_CRANK);
+			finalAngles[ROBOTARM_THIRD_CRANK] = abs(readFinalAngle(ROBOTARM_FIRST_CRANK) - readFinalAngle(ROBOTARM_SECOND_CRANK));
+			lastServoSpeed[ROBOTARM_THIRD_CRANK] = smoothly;
+		}
 	}
 	else {
 		setFixedAngle(crank, angle);
+		
+		if (keepCrankParalel)
+			setFixedAngle(ROBOTARM_THIRD_CRANK, abs(readFinalAngle(ROBOTARM_FIRST_CRANK) - readFinalAngle(ROBOTARM_SECOND_CRANK)));
 	}
 }
 
+// Read servo angle with this function
 uint8_t RobotArm::readAngle(uint8_t crank) {
+	// Apply direction fix
 	uint8_t fixedAngle = servoDirectionFixes[crank] ? 180 - servos[crank].read() : servos[crank].read();
 	
+	// Apply angle fix
 	fixedAngle += servoAngleFixes[crank];
 
 	return fixedAngle;
+}
+
+// For smooth mode it returns final angle
+uint8_t RobotArm::readFinalAngle(uint8_t crank) {
+	if (smoothMovements)
+		return finalAngles[crank];
+	else return readAngle(crank);
 }
 
 // Direct access to each servo
@@ -129,13 +147,6 @@ void RobotArm::setCoordinates(float x, float y, float z) {
 	
 	uint8_t gama = atan2(y - n, p - m) * 180 / PI + 180 - alpha;
 	setAngle(ROBOTARM_SECOND_CRANK, gama);
-	
-	
-	if (debug) {
-		Serial.println(m);
-		Serial.println(n);
-		printAngles(alpha, beta, gama);
-	}
 }
 
 // Check if arm can reach coordinates
@@ -151,15 +162,15 @@ bool RobotArm::isCoordinateReachable (float x, float y, float z) {
 }
 
 // Let's see how it works
-void RobotArm::printAngles(uint8_t alpha, uint8_t beta, uint8_t gama) {
+void RobotArm::printAngles() {
 	Serial.print("Alpha: ");
-	Serial.println(alpha);
+	Serial.println(readFinalAngle(ROBOTARM_FIRST_CRANK));
 	
 	Serial.print("Beta: ");
-	Serial.println(beta);
+	Serial.println(readFinalAngle(ROBOTARM_ROTATION_CRANK));
 	
 	Serial.print("Gama: ");
-	Serial.println(gama);
+	Serial.println(readFinalAngle(ROBOTARM_SECOND_CRANK));
 	
 	Serial.println("");
 }
@@ -185,8 +196,8 @@ void RobotArm::update() {
 					int8_t direction = (finalAngles[crank] > readAngle(crank)) ? 1 : -1;
 					
 					if ((finalAngles[crank] + startAngles[crank]) / 2 < readAngle(crank))
-						lastServoSpeed[crank] -= smoothly * direction;
-					else lastServoSpeed[crank] += smoothly * direction;
+						lastServoSpeed[crank] -= (10.0 / smoothly) * direction;
+					else lastServoSpeed[crank] += (10.0 / smoothly) * direction;
 					
 					setFixedAngle(crank, readAngle(crank) + lastServoSpeed[crank] * direction);
 				}
