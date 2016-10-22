@@ -21,6 +21,7 @@
 #define RobotArm_h
 
 	#include <Servo.h>
+	#include <PID_v1.h>
 	#include <Arduino.h>
 	#include <inttypes.h>
 	#include <math.h>
@@ -32,12 +33,12 @@
 	#define ROBOTARM_SECOND_CRANK 1
 	#define ROBOTARM_THIRD_CRANK 2
 	#define ROBOTARM_ROTATION_CRANK 3
-	#define ROBOTARM_GRABBER 4
+	#define ROBOTARM_GRIPPER 4
 	
 	// Distances between servos
 	#define ROBOTARM_DISTANCE_FIRST_SECOND 0
 	#define ROBOTARM_DISTANCE_SECOND_THIRD 1
-	#define ROBOTARM_DISTANCE_THIRD_GRABBER 2
+	#define ROBOTARM_DISTANCE_THIRD_GRIPPER 2
 	
 	// Errors
 	#define ROBOTARM_ERROR_OUTOFRANGE 1
@@ -46,40 +47,44 @@
 	class RobotArm {
 		public:
 			RobotArm();
-			Servo servos[5];	// This should be private, but who knows... :)
+			
 			
 			void attach(); 	// Call this in setup()
 			void update();	// Call this function at least once every 50ms
-			void setCoordinates(short, short, short);	// Set arm to specific coordinates
+			void setCoordinates(float, float, float);	// Set arm to specific coordinates
 			void setAngle(uint8_t, uint8_t);			// Set angle of arm
 			uint8_t readAngle(uint8_t);					// Read angle of crank
 			uint8_t readFinalAngle(uint8_t);			// Read final angle of crank
-			bool isCoordinateReachable(short, short, short);	// Check if coordinates are reachable
+			bool isCoordinateReachable(float, float, float, bool);	// Check if coordinates are reachable
 			
 			
 			// For easy debugging
 			void printAngles();
 			
 			// Define these parameters before setCoordinates() or setAngle()
-			int8_t servoAngleFixes[5]; 		// Change start angle with this
+			uint8_t servoAngleFixes[5]; 	// Change start angle with this
+			uint8_t defaultAngles[5];		// Set default angles	
 			bool servoDirectionFixes[5];	// Fix direction of each servo
-			uint8_t servosPins[5];			// Pins for each servo
+			uint8_t servosPins[6];			// Pins for each servo
 			short servoDistances[3];		// Distance between each servo. Unit doesn't matter, try with mm
 			bool smoothMovements;			// Enable smooth movements, speed up & speed down
-			bool keepCrankParalel;			// Every you change angle set angle of third crank to keep grabber parallel to surface
-			
-			uint8_t smoothly;	// How smooth do you want (default 100, min 1, max 255)
+			bool keepCrankParalel;			// Every time you change angle set angle of third crank to keep gripper parallel to surface
 			
 
 		private:
 			void setFixedAngle(uint8_t, uint8_t);
-			void setDefaults();
+			void getCoordinateOfSecondCrank(float, float, float, float &, float &, float &);
+			
+			Servo servos[5];
 			
 			// Temp values
-			float lastServoSpeed[5];
-			uint8_t finalAngles[5];
-			uint8_t startAngles[5];
 			bool smoothMovementsFinished;
+			double finalAngles[5];
+			double currentAngles[5];
+			double nextAngles[5];
 			unsigned long lastRefresh;
+			
+			
+			PID* pids[5];
 	};
 #endif
